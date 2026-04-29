@@ -1,7 +1,40 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Driver - Dabi Ride</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
+</head>
+
 <body>
+
 <h2>Driver Panel</h2>
-<p>Driver yahan se ride start karega</p>
+
+<input id="rideId" placeholder="Enter Ride ID"><br><br>
+<button onclick="start()">Start Ride</button>
+
+<script>
+var firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_PROJECT"
+};
+firebase.initializeApp(firebaseConfig);
+
+function start(){
+  var rideId = document.getElementById("rideId").value;
+
+  navigator.geolocation.watchPosition(function(position){
+
+    firebase.database().ref("rides/" + rideId).update({
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+      status: "ongoing"
+    });
+
+  });
+}
+</script>
+
 </body>
 </html>
