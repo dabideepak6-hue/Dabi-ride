@@ -2,21 +2,71 @@
 <html>
 <head>
 <title>Dabi Ride</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
+
+<style>
+body { margin:0; font-family:Arial; background:#f5f5f5; }
+.header { background:#ffcc00; padding:15px; text-align:center; font-weight:bold; }
+
+.card {
+  background:white;
+  margin:10px;
+  padding:15px;
+  border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+input, button {
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border-radius:8px;
+}
+
+button {
+  background:black;
+  color:white;
+  border:none;
+}
+
+#map { height:300px; border-radius:10px; }
+</style>
+
 </head>
 <body>
 
-<h2>Dabi Ride Booking</h2>
+<div class="header">🚀 Dabi Ride</div>
 
-<input id="name" placeholder="Name"><br><br>
-<input id="phone" placeholder="Phone"><br><br>
-<input id="pickup" placeholder="Pickup"><br><br>
-<input id="drop" placeholder="Drop"><br><br>
-
+<!-- BOOK -->
+<div class="card">
+<h3>Book Ride</h3>
+<input id="name" placeholder="Name">
+<input id="phone" placeholder="Phone">
+<input id="pickup" placeholder="Pickup">
+<input id="drop" placeholder="Drop">
 <button onclick="bookRide()">Book Ride</button>
-
 <p id="rideInfo"></p>
+</div>
+
+<!-- DRIVER -->
+<div class="card">
+<h3>Driver Panel</h3>
+<input id="rideId" placeholder="Ride ID">
+<button onclick="startRide()">Start Ride</button>
+<p id="driverStatus"></p>
+</div>
+
+<!-- MAP -->
+<div class="card">
+<h3>Live Tracking</h3>
+<div id="map"></div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
 <script>
 var firebaseConfig = {
@@ -28,27 +78,77 @@ var firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-function bookRide() {
-  var name = document.getElementById("name").value;
-  var phone = document.getElementById("phone").value;
-  var pickup = document.getElementById("pickup").value;
-  var drop = document.getElementById("drop").value;
+let currentRideId = "";
+let map = L.map('map').setView([26.0,75.0], 15);
 
-  var rideId = "ride_" + Date.now();
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  firebase.database().ref("rides/" + rideId).set({
-    name, phone, pickup, drop, status: "pending"
+let marker = L.marker([26.0,75.0]).addTo(map);
+let routeCoords = [];
+let polyline = L.polyline(routeCoords, {color:'blue'}).addTo(map);
+
+// BOOK
+function bookRide(){
+  let name = val("name");
+  let phone = val("phone");
+  let pickup = val("pickup");
+  let drop = val("drop");
+
+  if(!name || !phone || !pickup || !drop){
+    alert("Fill all fields");
+    return;
+  }
+
+  currentRideId = "ride_" + Date.now();
+
+  firebase.database().ref("rides/"+currentRideId).set({
+    name, phone, pickup, drop, status:"pending"
   });
 
   document.getElementById("rideInfo").innerText =
-  "Ride ID: " + rideId;
+  "Ride ID: " + currentRideId;
 
-  // WhatsApp
-  var msg = "Ride ID: " + rideId;
-  window.open("https://wa.me/91" + phone + "?text=" + msg);
+  document.getElementById("rideId").value = currentRideId;
 
-  window.location.href = "track.html?rideId=" + rideId;
+  startTracking();
 }
+
+// DRIVER
+function startRide(){
+  let rideId = val("rideId");
+
+  navigator.geolocation.watchPosition(function(pos){
+    let lat = pos.coords.latitude;
+    let lng = pos.coords.longitude;
+
+    firebase.database().ref("rides/"+rideId).update({
+      lat, lng, status:"on the way"
+    });
+
+    document.getElementById("driverStatus").innerText =
+    "Live: " + lat + ", " + lng;
+  });
+}
+
+// TRACK
+function startTracking(){
+  firebase.database().ref("rides/"+currentRideId).on("value", snap=>{
+    let d = snap.val();
+    if(d && d.lat){
+      let loc = [d.lat, d.lng];
+
+      marker.setLatLng(loc);
+      map.setView(loc);
+
+      routeCoords.push(loc);
+      polyline.setLatLngs(routeCoords);
+    }
+  });
+}
+
+// helper
+function val(id){ return document.getElementById(id).value; }
+
 </script>
 
 </body>
