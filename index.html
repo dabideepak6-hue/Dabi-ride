@@ -2,67 +2,73 @@
 <html>
 <head>
 <title>Dabi Ride</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
 
 <style>
-body { margin:0; font-family:Arial; background:#f5f5f5; }
-.header { background:#ffcc00; padding:15px; text-align:center; font-weight:bold; }
+body { margin:0; font-family:Arial; }
+#map { height:100vh; }
 
-.card {
-  background:white;
-  margin:10px;
-  padding:15px;
-  border-radius:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+.topbar {
+  position:absolute; top:0; width:100%;
+  background:#ffcc00; padding:12px;
+  text-align:center; font-weight:bold;
+  z-index:1000;
+}
+
+.sheet {
+  position:absolute; bottom:0; width:100%;
+  background:white; border-radius:20px 20px 0 0;
+  padding:15px; box-shadow:0 -4px 10px rgba(0,0,0,0.2);
+  z-index:1000;
 }
 
 input, button {
-  width:100%;
-  padding:10px;
-  margin:5px 0;
+  width:100%; padding:12px; margin:5px 0;
   border-radius:8px;
 }
 
 button {
-  background:black;
-  color:white;
-  border:none;
+  background:black; color:white; border:none;
 }
 
-#map { height:300px; border-radius:10px; }
+.small { background:#eee; color:black; }
+
+.info { font-weight:bold; }
 </style>
 
 </head>
 <body>
 
-<div class="header">🚀 Dabi Ride</div>
+<div class="topbar">🚀 Dabi Ride</div>
+<div id="map"></div>
 
-<!-- BOOK -->
-<div class="card">
+<div class="sheet">
+
 <h3>Book Ride</h3>
+
 <input id="name" placeholder="Name">
 <input id="phone" placeholder="Phone">
-<input id="pickup" placeholder="Pickup">
+<input id="pickup" placeholder="Pickup (GPS)">
 <input id="drop" placeholder="Drop">
-<button onclick="bookRide()">Book Ride</button>
-<p id="rideInfo"></p>
-</div>
 
-<!-- DRIVER -->
-<div class="card">
-<h3>Driver Panel</h3>
+<button onclick="getLocation()">Use My Location</button>
+<button onclick="bookRide()">Book Ride</button>
+
+<p id="distance" class="info"></p>
+<p id="fare" class="info"></p>
+
+<hr>
+
+<h3>Driver</h3>
+
 <input id="rideId" placeholder="Ride ID">
 <button onclick="startRide()">Start Ride</button>
-<p id="driverStatus"></p>
-</div>
+<button class="small" onclick="completeRide()">Complete Ride</button>
 
-<!-- MAP -->
-<div class="card">
-<h3>Live Tracking</h3>
-<div id="map"></div>
+<p id="status"></p>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
@@ -75,80 +81,113 @@ var firebaseConfig = {
   databaseURL: "https://dabi-ride-default-rtdb.firebaseio.com/",
   projectId: "dabi-ride"
 };
-
 firebase.initializeApp(firebaseConfig);
 
-let currentRideId = "";
-let map = L.map('map').setView([26.0,75.0], 15);
+let rideId="", watchId, route=[];
+let map=L.map('map').setView([26,75],15);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-let marker = L.marker([26.0,75.0]).addTo(map);
-let routeCoords = [];
-let polyline = L.polyline(routeCoords, {color:'blue'}).addTo(map);
+let marker=L.marker([26,75]).addTo(map);
+let polyline=L.polyline(route,{color:'black'}).addTo(map);
+
+// GPS
+function getLocation(){
+ navigator.geolocation.getCurrentPosition(pos=>{
+  let lat=pos.coords.latitude;
+  let lng=pos.coords.longitude;
+  pickup.value=lat+","+lng;
+  map.setView([lat,lng]);
+  marker.setLatLng([lat,lng]);
+ });
+}
+
+// Distance
+function calc(lat1,lon1,lat2,lon2){
+ let R=6371;
+ let dLat=(lat2-lat1)*Math.PI/180;
+ let dLon=(lon2-lon1)*Math.PI/180;
+ let a=Math.sin(dLat/2)**2 +
+ Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+ Math.sin(dLon/2)**2;
+ return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
 
 // BOOK
 function bookRide(){
-  let name = val("name");
-  let phone = val("phone");
-  let pickup = val("pickup");
-  let drop = val("drop");
+ let p=pickup.value.split(",");
+ let lat1=parseFloat(p[0]);
+ let lng1=parseFloat(p[1]);
 
-  if(!name || !phone || !pickup || !drop){
-    alert("Fill all fields");
-    return;
-  }
+ let lat2=lat1+0.02;
+ let lng2=lng1+0.02;
 
-  currentRideId = "ride_" + Date.now();
+ let dist=calc(lat1,lng1,lat2,lng2);
+ let fare=Math.round(dist*10);
 
-  firebase.database().ref("rides/"+currentRideId).set({
-    name, phone, pickup, drop, status:"pending"
-  });
+ distance.innerText="Distance: "+dist.toFixed(2)+" KM";
+ fareBox.innerText="Fare: ₹"+fare;
 
-  document.getElementById("rideInfo").innerText =
-  "Ride ID: " + currentRideId;
+ rideId="ride_"+Date.now();
 
-  document.getElementById("rideId").value = currentRideId;
+ firebase.database().ref("rides/"+rideId).set({
+  lat1,lng1,lat2,lng2,dist,fare,status:"pending"
+ });
 
-  startTracking();
+ rideIdInput.value=rideId;
+ track();
 }
 
 // DRIVER
 function startRide(){
-  let rideId = val("rideId");
+ let id=rideIdInput.value;
 
-  navigator.geolocation.watchPosition(function(pos){
-    let lat = pos.coords.latitude;
-    let lng = pos.coords.longitude;
+ watchId=navigator.geolocation.watchPosition(pos=>{
+  let lat=pos.coords.latitude;
+  let lng=pos.coords.longitude;
 
-    firebase.database().ref("rides/"+rideId).update({
-      lat, lng, status:"on the way"
-    });
-
-    document.getElementById("driverStatus").innerText =
-    "Live: " + lat + ", " + lng;
+  firebase.database().ref("rides/"+id).update({
+   lat,lng,status:"on the way"
   });
+
+  status.innerText="Driver moving...";
+ });
+}
+
+// COMPLETE
+function completeRide(){
+ let id=rideIdInput.value;
+
+ firebase.database().ref("rides/"+id).update({
+  status:"completed"
+ });
+
+ if(watchId) navigator.geolocation.clearWatch(watchId);
+
+ route=[]; polyline.setLatLngs([]);
+ alert("Ride Completed");
 }
 
 // TRACK
-function startTracking(){
-  firebase.database().ref("rides/"+currentRideId).on("value", snap=>{
-    let d = snap.val();
-    if(d && d.lat){
-      let loc = [d.lat, d.lng];
-
-      marker.setLatLng(loc);
-      map.setView(loc);
-
-      routeCoords.push(loc);
-      polyline.setLatLngs(routeCoords);
-    }
-  });
+function track(){
+ firebase.database().ref("rides/"+rideId).on("value",snap=>{
+  let d=snap.val();
+  if(d && d.lat){
+   let loc=[d.lat,d.lng];
+   marker.setLatLng(loc);
+   map.panTo(loc);
+   route.push(loc);
+   polyline.setLatLngs(route);
+  }
+ });
 }
 
-// helper
-function val(id){ return document.getElementById(id).value; }
-
+// shortcuts
+let pickup=document.getElementById("pickup");
+let distance=document.getElementById("distance");
+let fareBox=document.getElementById("fare");
+let rideIdInput=document.getElementById("rideId");
+let status=document.getElementById("status");
 </script>
 
 </body>
