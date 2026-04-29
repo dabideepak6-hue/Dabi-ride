@@ -1,105 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dabi Ride</title>
-
-<style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #f4f4f4;
-}
-
-header {
-  background: linear-gradient(45deg, #ffcc00, #ff9900);
-  padding: 15px;
-  text-align: center;
-  font-size: 22px;
-  font-weight: bold;
-}
-
-.container {
-  padding: 20px;
-  text-align: center;
-}
-
-input {
-  width: 90%;
-  padding: 12px;
-  margin: 8px 0;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-button {
-  padding: 14px 25px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 25px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.card {
-  background: white;
-  padding: 15px;
-  margin: 15px 0;
-  border-radius: 10px;
-}
-
-.footer {
-  background: #111;
-  color: white;
-  text-align: center;
-  padding: 15px;
-}
-</style>
 </head>
-
 <body>
 
-<header>🚀 Dabi Ride</header>
+<h2>Dabi Ride Booking</h2>
 
-<div class="container">
-
-<h2>Book Your Ride</h2>
-
-<input id="name" placeholder="Your Name">
-<input id="phone" placeholder="Phone Number">
-<input id="pickup" placeholder="Pickup Location">
-<input id="drop" placeholder="Drop Location">
+<input id="name" placeholder="Name"><br><br>
+<input id="phone" placeholder="Phone"><br><br>
+<input id="pickup" placeholder="Pickup"><br><br>
+<input id="drop" placeholder="Drop"><br><br>
 
 <button onclick="bookRide()">Book Ride</button>
 
-<div id="rideInfo" style="color:green;font-weight:bold;margin-top:10px;"></div>
+<p id="rideInfo"></p>
 
-<div class="card">
-  <h3>Track Ride</h3>
-  <input id="trackId" placeholder="Enter Ride ID">
-  <button onclick="goTrack()">Track Now</button>
-</div>
-
-<div class="card">
-  <h3>Driver Panel</h3>
-  <a href="driver.html"><button>Driver Login</button></a>
-</div>
-
-</div>
-
-<div class="footer">
-📞 9521393991 <br>
-© 2026 Dabi Ride
-</div>
-
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
 
 <script>
-
-// ✅ Firebase config (already ready)
 var firebaseConfig = {
   apiKey: "AIzaSyABuwyaR9hYdeHpqm9-NK0hc_LEXUKk5ls",
   authDomain: "dabi-ride.firebaseapp.com",
@@ -109,59 +28,27 @@ var firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-// 🚀 Book Ride
 function bookRide() {
-
   var name = document.getElementById("name").value;
   var phone = document.getElementById("phone").value;
   var pickup = document.getElementById("pickup").value;
   var drop = document.getElementById("drop").value;
 
-  if(name=="" || phone=="" || pickup=="" || drop==""){
-    alert("Please fill all details");
-    return;
-  }
-
   var rideId = "ride_" + Date.now();
 
-  // Save data
   firebase.database().ref("rides/" + rideId).set({
-    name: name,
-    phone: phone,
-    pickup: pickup,
-    drop: drop,
-    status: "pending",
-    createdAt: new Date().toISOString()
+    name, phone, pickup, drop, status: "pending"
   });
 
-  // Show on screen
   document.getElementById("rideInfo").innerText =
-  "Your Ride ID: " + rideId;
+  "Ride ID: " + rideId;
 
-  // WhatsApp message
-  var message = "🚀 Dabi Ride Booking Confirmed\n\n" +
-  "Ride ID: " + rideId + "\n" +
-  "Pickup: " + pickup + "\n" +
-  "Drop: " + drop;
+  // WhatsApp
+  var msg = "Ride ID: " + rideId;
+  window.open("https://wa.me/91" + phone + "?text=" + msg);
 
-  window.open("https://wa.me/91" + phone + "?text=" + encodeURIComponent(message));
-
-  // Redirect
   window.location.href = "track.html?rideId=" + rideId;
 }
-
-// 🔍 Track Ride
-function goTrack(){
-  var id = document.getElementById("trackId").value;
-
-  if(id==""){
-    alert("Enter Ride ID");
-    return;
-  }
-
-  window.location.href = "track.html?rideId=" + id;
-}
-
 </script>
 
 </body>
