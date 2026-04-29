@@ -8,8 +8,9 @@
 <h2>Driver Panel</h2>
 
 <input id="rideId" placeholder="Enter Ride ID"><br><br>
+<button onclick="start()">Start Ride</button>
 
-<button onclick="startRide()">Start Ride</button>
+<p id="status"></p>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
 
@@ -23,24 +24,40 @@ var firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-function startRide(){
+function start() {
 
   var rideId = document.getElementById("rideId").value;
 
-  if(rideId==""){
+  if(rideId == ""){
     alert("Enter Ride ID");
     return;
   }
 
-  navigator.geolocation.watchPosition(function(pos){
+  document.getElementById("status").innerText = "Tracking started...";
 
-    firebase.database().ref("rides/" + rideId).update({
-      status: "on the way",
-      lat: pos.coords.latitude,
-      lng: pos.coords.longitude
-    });
+  navigator.geolocation.watchPosition(
+    function(pos) {
 
-  });
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+
+      firebase.database().ref("rides/" + rideId).update({
+        status: "on the way",
+        lat: lat,
+        lng: lng
+      });
+
+      document.getElementById("status").innerText =
+      "Live: " + lat + ", " + lng;
+
+    },
+    function(error){
+      alert("Location error: " + error.message);
+    },
+    {
+      enableHighAccuracy: true
+    }
+  );
 }
 </script>
 
