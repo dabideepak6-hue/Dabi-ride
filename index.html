@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,10 +43,6 @@ button {
   cursor: pointer;
 }
 
-button:hover {
-  background: #333;
-}
-
 .card {
   background: white;
   padding: 15px;
@@ -79,18 +74,17 @@ button:hover {
 
 <button onclick="bookRide()">Book Ride</button>
 
+<div id="rideInfo" style="color:green;font-weight:bold;margin-top:10px;"></div>
+
 <div class="card">
   <h3>Track Ride</h3>
-  <p>Enter your Ride ID to track</p>
   <input id="trackId" placeholder="Enter Ride ID">
   <button onclick="goTrack()">Track Now</button>
 </div>
 
 <div class="card">
   <h3>Driver Panel</h3>
-  <a href="driver.html">
-    <button>Driver Login</button>
-  </a>
+  <a href="driver.html"><button>Driver Login</button></a>
 </div>
 
 </div>
@@ -104,17 +98,18 @@ button:hover {
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
 
 <script>
-// 🔴 Firebase config yahan paste karo
+
+// ✅ Firebase config (already ready)
 var firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  databaseURL: "YOUR_DB_URL",
-  projectId: "YOUR_PROJECT"
+  apiKey: "AIzaSyABuwyaR9hYdeHpqm9-NK0hc_LEXUKk5ls",
+  authDomain: "dabi-ride.firebaseapp.com",
+  databaseURL: "https://dabi-ride-default-rtdb.firebaseio.com/",
+  projectId: "dabi-ride"
 };
 
 firebase.initializeApp(firebaseConfig);
 
-// Ride booking
+// 🚀 Book Ride
 function bookRide() {
 
   var name = document.getElementById("name").value;
@@ -129,8 +124,45 @@ function bookRide() {
 
   var rideId = "ride_" + Date.now();
 
+  // Save data
   firebase.database().ref("rides/" + rideId).set({
     name: name,
     phone: phone,
     pickup: pickup,
-    drop
+    drop: drop,
+    status: "pending",
+    createdAt: new Date().toISOString()
+  });
+
+  // Show on screen
+  document.getElementById("rideInfo").innerText =
+  "Your Ride ID: " + rideId;
+
+  // WhatsApp message
+  var message = "🚀 Dabi Ride Booking Confirmed\n\n" +
+  "Ride ID: " + rideId + "\n" +
+  "Pickup: " + pickup + "\n" +
+  "Drop: " + drop;
+
+  window.open("https://wa.me/91" + phone + "?text=" + encodeURIComponent(message));
+
+  // Redirect
+  window.location.href = "track.html?rideId=" + rideId;
+}
+
+// 🔍 Track Ride
+function goTrack(){
+  var id = document.getElementById("trackId").value;
+
+  if(id==""){
+    alert("Enter Ride ID");
+    return;
+  }
+
+  window.location.href = "track.html?rideId=" + id;
+}
+
+</script>
+
+</body>
+</html>
