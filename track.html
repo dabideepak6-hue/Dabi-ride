@@ -1,57 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Track Ride - Dabi Ride</title>
-
-  <!-- Google Maps -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_MAP_KEY"></script>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
-
-  <style>
-    #map { height: 100vh; width: 100%; }
-  </style>
+<title>Track Ride</title>
 </head>
-
 <body>
 
-<div id="map"></div>
+<h2>Tracking...</h2>
+
+<p id="status"></p>
+<p id="location"></p>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
 
 <script>
-// Firebase config
 var firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  databaseURL: "YOUR_DB_URL",
-  projectId: "YOUR_PROJECT"
+  apiKey: "AIzaSyABuwyaR9hYdeHpqm9-NK0hc_LEXUKk5ls",
+  authDomain: "dabi-ride.firebaseapp.com",
+  databaseURL: "https://dabi-ride-default-rtdb.firebaseio.com/",
+  projectId: "dabi-ride"
 };
+
 firebase.initializeApp(firebaseConfig);
 
-// Ride ID URL se
-const params = new URLSearchParams(window.location.search);
-const rideId = params.get("rideId");
+// URL se rideId lo
+var urlParams = new URLSearchParams(window.location.search);
+var rideId = urlParams.get("rideId");
 
-// Map
-var map = new google.maps.Map(document.getElementById("map"), {
-  zoom: 15,
-  center: { lat: 26.0, lng: 75.0 }
-});
-
-var marker = new google.maps.Marker({
-  map: map,
-  title: "Driver Location"
-});
-
-// Live tracking
 firebase.database().ref("rides/" + rideId).on("value", function(snapshot) {
+
   var data = snapshot.val();
 
-  if(data && data.lat){
-    var loc = { lat: data.lat, lng: data.lng };
+  if(data){
+    document.getElementById("status").innerText =
+    "Status: " + data.status;
 
-    marker.setPosition(loc);
-    map.setCenter(loc);
+    if(data.lat){
+      document.getElementById("location").innerText =
+      "Driver Location: " + data.lat + ", " + data.lng;
+    }
   }
 });
 </script>
