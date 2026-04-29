@@ -1,1 +1,136 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dabi Ride</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #f4f4f4;
+}
+
+header {
+  background: linear-gradient(45deg, #ffcc00, #ff9900);
+  padding: 15px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.container {
+  padding: 20px;
+  text-align: center;
+}
+
+input {
+  width: 90%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 14px 25px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #333;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 10px;
+}
+
+.footer {
+  background: #111;
+  color: white;
+  text-align: center;
+  padding: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<header>🚀 Dabi Ride</header>
+
+<div class="container">
+
+<h2>Book Your Ride</h2>
+
+<input id="name" placeholder="Your Name">
+<input id="phone" placeholder="Phone Number">
+<input id="pickup" placeholder="Pickup Location">
+<input id="drop" placeholder="Drop Location">
+
+<button onclick="bookRide()">Book Ride</button>
+
+<div class="card">
+  <h3>Track Ride</h3>
+  <p>Enter your Ride ID to track</p>
+  <input id="trackId" placeholder="Enter Ride ID">
+  <button onclick="goTrack()">Track Now</button>
+</div>
+
+<div class="card">
+  <h3>Driver Panel</h3>
+  <a href="driver.html">
+    <button>Driver Login</button>
+  </a>
+</div>
+
+</div>
+
+<div class="footer">
+📞 9521393991 <br>
+© 2026 Dabi Ride
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
+
+<script>
+// 🔴 Firebase config yahan paste karo
+var firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_PROJECT"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+// Ride booking
+function bookRide() {
+
+  var name = document.getElementById("name").value;
+  var phone = document.getElementById("phone").value;
+  var pickup = document.getElementById("pickup").value;
+  var drop = document.getElementById("drop").value;
+
+  if(name=="" || phone=="" || pickup=="" || drop==""){
+    alert("Please fill all details");
+    return;
+  }
+
+  var rideId = "ride_" + Date.now();
+
+  firebase.database().ref("rides/" + rideId).set({
+    name: name,
+    phone: phone,
+    pickup: pickup,
+    drop
